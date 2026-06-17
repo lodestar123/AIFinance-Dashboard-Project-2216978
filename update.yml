@@ -1,0 +1,60 @@
+name: SWING Portfolio 자동 업데이트
+
+on:
+  # 매일 한국시간 오전 8시 (UTC 23시) 자동 실행
+  schedule:
+    - cron: "0 23 * * *"
+  # config.py(매매일지) 수정 후 push 시 자동 실행
+  push:
+    paths:
+      - "config.py"
+  # 수동 실행 버튼
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 차트 이미지 커밋 권한
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 한글 폰트 설치
+        run: sudo apt-get update && sudo apt-get install -y fonts-nanum
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: 차트 생성
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
+          SWING_PAGE_ID: ${{ secrets.SWING_PAGE_ID }}
+        run: python update.py charts
+
+      - name: 차트 이미지 커밋 & 푸시
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add charts/*.png
+          if git diff --staged --quiet; then
+            echo "변경된 차트 없음"
+          else
+            git commit -m "chart: 자동 업데이트 $(date +'%Y-%m-%d %H:%M')"
+            git push
+          fi
+
+      - name: 노션 업데이트
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
+          SWING_PAGE_ID: ${{ secrets.SWING_PAGE_ID }}
+          GITHUB_BRANCH: main
+        run: python update.py notion
