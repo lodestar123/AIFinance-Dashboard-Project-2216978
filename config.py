@@ -12,6 +12,11 @@ NOTION_TOKEN   = os.environ.get("NOTION_TOKEN", "")
 PARENT_PAGE_ID = os.environ.get("PARENT_PAGE_ID", "")
 SWING_PAGE_ID  = os.environ.get("SWING_PAGE_ID", "")
 
+# ── 하위 페이지 ID (최초 실행 후 GitHub Secrets에 등록) ──
+TRADE_JOURNAL_PAGE_ID = os.environ.get("TRADE_JOURNAL_PAGE_ID", "")
+WATCHLIST_PAGE_ID     = os.environ.get("WATCHLIST_PAGE_ID", "")
+PERFORMANCE_PAGE_ID   = os.environ.get("PERFORMANCE_PAGE_ID", "")
+
 # ── GitHub 저장소 정보 (이미지 raw 링크 생성용) ──
 # 예: "username/swing-portfolio"
 GITHUB_REPO   = os.environ.get("GITHUB_REPOSITORY", "USERNAME/swing-portfolio")
@@ -57,3 +62,8 @@ RISK_FREE_RATE = 0.035
 
 # ── 차트 저장 폴더 ──
 CHART_DIR = "charts"
+
+# ── 과제 헤더 (노션 페이지 상단 표시) ──
+STUDENT_LINE = "컴퓨터과학전공 2216978 장희진"
+COURSE_LINE  = "AI코딩을통한금융세상읽기 (001) 기말 프로젝트 과제"
+STUDENT_ID   = "2216978"  # 노션 헤더 존재 여부 확인용

@@ -9,7 +9,8 @@ import time
 from notion_client import Client
 
 from config import (
-    NOTION_TOKEN, GITHUB_REPO, GITHUB_BRANCH, TRADE_LOGS
+    NOTION_TOKEN, GITHUB_REPO, GITHUB_BRANCH, TRADE_LOGS,
+    STUDENT_LINE, COURSE_LINE, STUDENT_ID,
 )
 from analysis import fmt_won, fmt_pct
 
@@ -129,5 +130,80 @@ def has_section(blocks, keyword):
         if bt.startswith("heading"):
             text = "".join(t["plain_text"] for t in b[bt].get("rich_text", []))
             if keyword in text:
+                return True
+    return False
+
+
+def append_blocks(page_id, children):
+    """페이지 하단에 블록 추가 (100개 단위 분할)"""
+    for i in range(0, len(children), 100):
+        notion.blocks.children.append(
+            block_id=page_id, children=children[i:i + 100])
+
+
+def create_child_page(parent_id, title, icon="📄", children=None):
+    """하위 페이지 생성"""
+    props = {
+        "parent": {"page_id": parent_id},
+        "icon": {"type": "emoji", "emoji": icon},
+        "properties": {"title": {"title": [{"type": "text", "text": {"content": title}}]}},
+    }
+    if children:
+        props["children"] = children[:100]
+    page = notion.pages.create(**props)
+    return page["id"]
+
+
+def block_plain_text(block):
+    bt = block["type"]
+    if bt not in block:
+        return ""
+    return "".join(t["plain_text"] for t in block[bt].get("rich_text", []))
+
+
+def project_header_text():
+    return f"🎓 {STUDENT_LINE}\n{COURSE_LINE}"
+
+
+def has_project_header(blocks):
+    return any(STUDENT_ID in block_plain_text(b) for b in blocks)
+
+
+def ensure_project_header(page_id, blocks):
+    """과제 헤더가 없으면 상단 callout에 추가 (기존 페이지 호환)"""
+    if has_project_header(blocks):
+        return False
+    header = project_header_text()
+    for b in blocks:
+        if b["type"] == "callout":
+            txt = block_plain_text(b)
+            if "기준일" in txt or "작성일자" in txt:
+                notion.blocks.update(block_id=b["id"], callout={
+                    "rich_text": [{"type": "text", "text": {"content": f"{header}\n\n{txt}"}}],
+                    "icon": {"type": "emoji", "emoji": "🎓"}, "color": "purple_background"})
+                return True
+    append_blocks(page_id, [
+        _callout(project_header_text(), "🎓", "purple_background"),
+        _divider(),
+    ])
+    return True
+
+
+def update_callout_date(blocks, today):
+    """기준일 callout 업데이트 (과제 헤더가 통합된 callout도 유지)"""
+    date_line = f"📅 기준일: {today}   |   🔄 GitHub Actions가 매일 자동 업데이트합니다."
+    for b in blocks:
+        if b["type"] == "callout":
+            txt = block_plain_text(b)
+            if "기준일" in txt or "작성일자" in txt:
+                if STUDENT_ID in txt:
+                    content = f"{project_header_text()}\n\n{date_line}"
+                    icon, color = "🎓", "purple_background"
+                else:
+                    content = date_line
+                    icon, color = "📊", "blue_background"
+                notion.blocks.update(block_id=b["id"], callout={
+                    "rich_text": [{"type": "text", "text": {"content": content}}],
+                    "icon": {"type": "emoji", "emoji": icon}, "color": color})
                 return True
     return False

@@ -217,3 +217,161 @@ def make_summary_card(holdings, totals, risk_rows, today):
     plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="#0F172A")
     plt.close()
     return path
+
+
+def make_market_snapshot_chart(market_rows, today):
+    """주요 지수 전일대비 막대 차트"""
+    _setup_korean_font()
+    _ensure_dir()
+
+    names, pcts = [], []
+    for row in market_rows:
+        if row[2] == "N/A":
+            continue
+        names.append(row[0])
+        pcts.append(float(row[2].replace("%", "").replace("+", "")))
+
+    if not names:
+        return None
+
+    colors = ["#22C55E" if p >= 0 else "#EF4444" for p in pcts]
+    fig, ax = plt.subplots(figsize=(10, 5), facecolor="white")
+    bars = ax.bar(names, pcts, color=colors, edgecolor="white", linewidth=1.5, width=0.55)
+    for bar, p, c in zip(bars, pcts, colors):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + (0.15 if p >= 0 else -0.35),
+                f"{'+' if p >= 0 else ''}{p:.2f}%", ha="center", fontsize=11, fontweight="bold", color=c)
+    ax.axhline(0, color="#9CA3AF", linewidth=0.8)
+    ax.set_ylabel("전일대비 (%)", fontsize=10)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title(f"오늘의 시장 현황 — 주요 지수 전일대비\n기준일: {today}",
+                 fontsize=13, fontweight="bold", pad=15, color="#1a1a2e")
+    plt.tight_layout()
+    path = os.path.join(CHART_DIR, "market_snapshot.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close()
+    return path
+
+
+def make_benchmark_chart(port_ret, bench_ret, today):
+    """포트폴리오 vs 벤치마크 6개월 수익률 비교"""
+    _setup_korean_font()
+    _ensure_dir()
+
+    labels = ["내 포트폴리오", "가중 벤치마크"]
+    values = [port_ret, bench_ret]
+    colors = ["#3B82F6", "#94A3B8"]
+
+    fig, ax = plt.subplots(figsize=(8, 5), facecolor="white")
+    bars = ax.bar(labels, values, color=colors, edgecolor="white", linewidth=2, width=0.45)
+    for bar, v, c in zip(bars, values, colors):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + (0.3 if v >= 0 else -0.8),
+                f"{'+' if v >= 0 else ''}{v:.2f}%", ha="center", fontsize=14, fontweight="bold", color=c)
+    ax.axhline(0, color="#9CA3AF", linewidth=0.8)
+    diff = port_ret - bench_ret
+    diff_text = f"{'+' if diff >= 0 else ''}{diff:.2f}%p"
+    verdict = "🟢 아웃퍼폼" if diff > 0 else ("🔴 언더퍼폼" if diff < 0 else "🟡 동행")
+    ax.set_title(f"포트폴리오 vs 벤치마크 (6개월)\n{verdict}  |  초과수익 {diff_text}  |  기준일: {today}",
+                 fontsize=13, fontweight="bold", pad=15, color="#1a1a2e")
+    ax.spines[["top", "right"]].set_visible(False)
+    plt.tight_layout()
+    path = os.path.join(CHART_DIR, "benchmark_comparison.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close()
+    return path
+
+
+def make_portfolio_history_chart(history, monthly_returns, today):
+    """월말 포트폴리오 평가액 + 월별 수익률"""
+    _setup_korean_font()
+    _ensure_dir()
+
+    if len(history) < 2:
+        return None
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), facecolor="#F8F9FA",
+                                    gridspec_kw={"height_ratios": [2, 1]})
+    fig.suptitle(f"포트폴리오 성과 추적\n기준일: {today}",
+                 fontsize=15, fontweight="bold", y=0.98, color="#1a1a2e")
+
+    months = [h["month"] for h in history]
+    values = [h["value"] for h in history]
+    ax1.set_facecolor("#FFFFFF")
+    ax1.fill_between(range(len(months)), values, alpha=0.15, color="#3B82F6")
+    ax1.plot(range(len(months)), values, color="#3B82F6", linewidth=2.5, marker="o", markersize=7)
+    for i, (m, v) in enumerate(zip(months, values)):
+        ax1.annotate(f"₩{v:,.0f}", (i, v), textcoords="offset points",
+                     xytext=(0, 12), ha="center", fontsize=8, color="#3B82F6")
+    ax1.set_xticks(range(len(months)))
+    ax1.set_xticklabels(months, fontsize=9)
+    ax1.set_ylabel("평가금액 (원)", fontsize=10)
+    ax1.set_title("월말 포트폴리오 평가액", fontsize=12, fontweight="bold", loc="left")
+    ax1.spines[["top", "right"]].set_visible(False)
+    ax1.grid(axis="y", color="#F3F4F6", linestyle="--")
+
+    if monthly_returns:
+        ret_months = [r["month"] for r in monthly_returns]
+        rets = [r["return"] for r in monthly_returns]
+        bar_colors = ["#22C55E" if r >= 0 else "#EF4444" for r in rets]
+        ax2.set_facecolor("#FFFFFF")
+        ax2.bar(ret_months, rets, color=bar_colors, edgecolor="white", width=0.5)
+        for i, r in enumerate(rets):
+            ax2.text(i, r + (0.2 if r >= 0 else -0.5), f"{'+' if r >= 0 else ''}{r:.1f}%",
+                     ha="center", fontsize=9, fontweight="bold")
+        ax2.axhline(0, color="#9CA3AF", linewidth=0.8)
+        ax2.set_ylabel("월별 수익률 (%)", fontsize=10)
+        ax2.set_title("월별 수익률", fontsize=12, fontweight="bold", loc="left")
+        ax2.spines[["top", "right"]].set_visible(False)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    path = os.path.join(CHART_DIR, "portfolio_history.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="#F8F9FA")
+    plt.close()
+    return path
+
+
+def make_watchlist_heatmap(watch_rows, today):
+    """관심종목 일간변동률 히트맵 스타일 바차트"""
+    _setup_korean_font()
+    _ensure_dir()
+
+    names, pcts, statuses = [], [], []
+    for row in watch_rows:
+        if row[4] == "N/A":
+            continue
+        names.append(row[0])
+        pcts.append(float(row[4].replace("%", "").replace("+", "")))
+        statuses.append(row[7])
+
+    if not names:
+        return None
+
+    colors = []
+    for p, s in zip(pcts, statuses):
+        if "급등" in s or "고점" in s:
+            colors.append("#22C55E")
+        elif "급락" in s:
+            colors.append("#EF4444")
+        elif "저점" in s:
+            colors.append("#3B82F6")
+        else:
+            colors.append("#22C55E" if p >= 0 else "#EF4444")
+
+    fig, ax = plt.subplots(figsize=(12, max(5, len(names) * 0.5)), facecolor="white")
+    y_pos = range(len(names))
+    bars = ax.barh(y_pos, pcts, color=colors, edgecolor="white", height=0.6)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(names, fontsize=10)
+    for bar, p in zip(bars, pcts):
+        ax.text(bar.get_width() + (0.1 if p >= 0 else -0.1), bar.get_y() + bar.get_height() / 2,
+                f"{'+' if p >= 0 else ''}{p:.2f}%", va="center",
+                ha="left" if p >= 0 else "right", fontsize=9, fontweight="bold")
+    ax.axvline(0, color="#9CA3AF", linewidth=0.8)
+    ax.set_xlabel("일간 변동률 (%)", fontsize=10)
+    ax.set_title(f"관심종목 모니터링 — 일간 변동률\n기준일: {today}",
+                 fontsize=13, fontweight="bold", pad=15, color="#1a1a2e")
+    ax.spines[["top", "right"]].set_visible(False)
+    plt.tight_layout()
+    path = os.path.join(CHART_DIR, "watchlist_monitor.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close()
+    return path

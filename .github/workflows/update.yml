@@ -56,5 +56,8 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
           SWING_PAGE_ID: ${{ secrets.SWING_PAGE_ID }}
+          TRADE_JOURNAL_PAGE_ID: ${{ secrets.TRADE_JOURNAL_PAGE_ID }}
+          WATCHLIST_PAGE_ID: ${{ secrets.WATCHLIST_PAGE_ID }}
+          PERFORMANCE_PAGE_ID: ${{ secrets.PERFORMANCE_PAGE_ID }}
           GITHUB_BRANCH: main
         run: python update.py notion
