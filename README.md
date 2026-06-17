@@ -130,24 +130,6 @@ WATCH_LIST = [
 
 ---
 
-## 🛠️ 로컬 테스트 (선택)
-
-```bash
-pip install -r requirements.txt
-
-# Windows (PowerShell)
-$env:NOTION_TOKEN="ntn_..."
-$env:PARENT_PAGE_ID="..."
-$env:SWING_PAGE_ID="..."
-$env:GITHUB_REPOSITORY="username/repo-name"
-
-python update.py charts   # 차트만 생성
-python update.py notion   # 노션 업데이트
-python update.py          # 둘 다
-```
-
----
-
 ## 🏆 적용 기술
 
 | 분류 | 기술 |
@@ -162,10 +144,3 @@ python update.py          # 둘 다
 | 노션 연동 | Notion API, GitHub raw URL 이미지, 비파괴 블록 업데이트 |
 
 ---
-
-## 📦 제출 시 포함 권장
-
-- 소스 코드 (`*.py`, `requirements.txt`, `.github/workflows/`)
-- 생성된 차트 (`charts/*.png`)
-- 노션 공유 페이지 **전체 화면 스크린샷** (메인 + 하위 페이지)
-- `__pycache__/`, `.venv/`는 제외
